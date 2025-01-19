@@ -175,16 +175,17 @@
               fragmentShader: fragmentShader,
             });
 
-            // Apply default material or shader material based on the shader flag
+      
             toggleShader();
           });
         });
 
-        // Set camera position
+ 
         camera.position.z = 3;
 
-        // Create GUI for controlling the model and light
+
         gui = new dat.GUI();
+        gui.close();
         params = {
           scale: 1,
           rotationX: 0,
@@ -198,7 +199,7 @@
           shader: false, // Shader is off by default
         };
 
-        // Add controls to GUI for model
+    
         gui.add(params, "scale", 0.1, 5).onChange(() => {
           if (model) model.scale.set(params.scale, params.scale, params.scale);
         });
@@ -221,7 +222,7 @@
           if (model) model.position.z = params.positionZ;
         });
 
-        // Add controls to GUI for light
+    
         gui.add(params, "lightIntensity", 0, 5).onChange(() => {
           if (ambientLight) ambientLight.intensity = params.lightIntensity;
           if (directionalLight)
@@ -232,13 +233,13 @@
           if (directionalLight) directionalLight.color.set(params.lightColor);
         });
 
-        // Add shader toggle to GUI
+    
         gui.add(params, "shader").onChange(() => {
           shaderEnabled = params.shader;
           toggleShader();
         });
 
-        // Export function
+
         const exportParams = () => {
           const data = JSON.stringify(params, null, 2);
           const blob = new Blob([data], { type: "application/json" });
@@ -261,14 +262,14 @@
         }
       }
 
-      // Render and animate the scene
+     
       function animate() {
         requestAnimationFrame(animate);
-        controls.update(); // Update controls
+        controls.update(); 
         renderer.render(scene, camera);
       }
 
-      // Window resize handling
+    
       window.addEventListener("resize", () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -278,7 +279,7 @@
       init();
     </script>
 
-    <!-- Footer -->
+
     <div class="footer">
       <p><a href="https://sudo-self.com" target="_blank">sudo-self.com</a></p>
     </div>
