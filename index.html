@@ -154,12 +154,16 @@
           // Only set the environment, not the background
           scene.environment = hdrTexture;
 
-          // Load the GLB model
-          const loader = new THREE.GLTFLoader();
-          loader.load("/model.glb", (gltf) => {
-            model = gltf.scene;
-            scene.add(model);
-            model.scale.set(1, 1, 1); // Initial scale
+   // Load the GLB model
+const loader = new THREE.GLTFLoader();
+loader.load("/model.glb", (gltf) => {
+  model = gltf.scene;
+  scene.add(model);
+  model.scale.set(1, 1, 1); // Initial scale
+
+  // Rotate the model 90 degrees clockwise on the Y axis (around the vertical axis)
+  model.rotation.y = Math.PI / 2;
+});
 
             // Store the default material for the model
             defaultMaterial = model.children[0].material;
