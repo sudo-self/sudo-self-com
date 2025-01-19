@@ -181,9 +181,9 @@
         // Set camera position
         camera.position.z = 3;
 
-        // Create GUI for controlling the model and light
-        gui = new dat.GUI({ autoPlace: false });
-        document.body.appendChild(gui.domElement); // Append GUI to the body
+        gui = new dat.GUI();
+        gui.close();
+
         params = {
           scale: 1,
           rotationX: 0,
@@ -248,44 +248,26 @@
         };
         gui.add({ export: exportParams }, "export");
 
-        // Initially close the folders
-        gui.__folders["Model"].close();
-        gui.__folders["Light"].close();
-        gui.__folders["Shader"].close();
+        animate();
       }
 
-      // Toggle shader effect
+      // Toggle shader material
       function toggleShader() {
         if (shaderEnabled && model) {
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.material = shaderMaterial;
-            }
-          });
+          model.children[0].material = shaderMaterial;
         } else if (model) {
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.material = defaultMaterial;
-            }
-          });
+          model.children[0].material = defaultMaterial;
         }
       }
 
-      // Animate the scene
+      // Render and animate the scene
       function animate() {
         requestAnimationFrame(animate);
-
-        // Rotate model if exists
-        if (model) {
-          model.rotation.x += 0.01;
-          model.rotation.y += 0.01;
-        }
-
-        controls.update();
+        controls.update(); // Update controls
         renderer.render(scene, camera);
       }
 
-      // Resize event listener
+      // Window resize handling
       window.addEventListener("resize", () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -293,15 +275,19 @@
       });
 
       init();
-      animate();
     </script>
 
     <!-- Footer -->
     <div class="footer">
-      <p><a href="https://sudo-self.com">sudo-self.com</a></p>
+      <p><a href="https://sudo-self.com" target="_blank">sudo-self.com</a></p>
     </div>
   </body>
 </html>
+
+
+
+
+
 
 
 
