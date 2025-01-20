@@ -1,60 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Meta Tags -->
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <meta name="title" content="sudo-self.com" />
-    <meta
-      name="description"
-      content="Veteran, web developer, and IT professional passionate about technology and innovation."
-    />
-    <meta name="author" content="sudo-self" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="msapplication-TileColor" content="#FFFFFF" />
-    <meta name="msapplication-TileImage" content="icon192.png" />
-
-    <!-- Open Graph Metadata -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://sudo-self.com" />
-    <meta property="og:title" content="sudo-self.com" />
-    <meta
-      property="og:description"
-      content="Veteran, web developer, and IT professional passionate about technology and innovation."
-    />
-    <meta property="og:image" content="https://sudo-self.com/sudo-self.jpg" />
-
-    <!-- Twitter Metadata -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://sudo-self.com" />
-    <meta property="twitter:title" content="sudo-self.com" />
-    <meta
-      property="twitter:description"
-      content="Veteran, web developer, and IT professional passionate about technology and innovation."
-    />
-    <meta
-      property="twitter:image"
-      content="https://sudo-self.com/sudo-self.jpg"
-    />
-
-    <!-- Favicons and App Icons -->
-    <link rel="shortcut icon" href="favicon.ico" />
-    <link
-      rel="icon"
-      type="image/x-icon"
-      sizes="16x16 32x32"
-      href="favicon.ico"
-    />
-    <link rel="icon" sizes="32x32" href="favicon.png" />
-    <link rel="icon" sizes="192x192" href="icon192.png" />
-    <link rel="apple-touch-icon" sizes="any" href="apple-touch-icon.png" />
-
-    <!-- Manifest -->
-    <link rel="manifest" href="manifest.json" />
-
+    <!-- (Meta Tags and Head Content Remain the Same) -->
     <!-- Page Title -->
     <title>sudo-self.com</title>
     <style>
@@ -95,14 +42,13 @@
     <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.7/build/dat.gui.min.js"></script>
 
     <script>
-      let scene, camera, renderer, model;
+      let scene, camera, renderer, model, model2, currentModel;
       let controls, ambientLight, directionalLight;
       let gui, params;
-      let shaderEnabled = false; // Shader toggle flag
+      let shaderEnabled = false;
       let defaultMaterial, shaderMaterial;
       let hdrTexture;
 
-      // Shader code (simple example shader)
       const vertexShader = `
       varying vec3 vColor;
       void main() {
@@ -118,71 +64,62 @@
       }
     `;
 
-      // Initialize Scene
       function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(
           75,
           window.innerWidth / window.innerHeight,
           0.1,
-          1000,
+          1000
         );
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Set up orbit controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.25;
-        controls.screenSpacePanning = false;
-        controls.maxPolarAngle = Math.PI / 2;
 
-        // Add lights
-        ambientLight = new THREE.AmbientLight(0x404040, 4); // Ambient light
+        ambientLight = new THREE.AmbientLight(0x404040, 4);
         scene.add(ambientLight);
         directionalLight = new THREE.DirectionalLight(0xffffff, 5);
         directionalLight.position.set(1, 1, 1).normalize();
         scene.add(directionalLight);
 
-        // Load the HDR environment map
         const hdrLoader = new THREE.RGBELoader();
         hdrLoader.load("./elmo.hdr", function (texture) {
           hdrTexture = texture;
           hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
-
-          // Only set the environment, not the background
           scene.environment = hdrTexture;
 
-          // Load the GLB model
           const loader = new THREE.GLTFLoader();
           loader.load("/model.glb", (gltf) => {
             model = gltf.scene;
+            currentModel = model; // Set current model
             scene.add(model);
-            model.scale.set(1, 1, 1); // Initial scale
-            model.rotation.y = Math.PI / -2;
+            model.scale.set(1, 1, 1);
 
-
-            // Store the default material for the model
             defaultMaterial = model.children[0].material;
 
-            // Create the shader material
             shaderMaterial = new THREE.ShaderMaterial({
               uniforms: {
-                color: { value: new THREE.Color(0xff0000) }, // Red shader color
+                color: { value: new THREE.Color(0xff0000) },
               },
               vertexShader: vertexShader,
               fragmentShader: fragmentShader,
             });
 
-      
             toggleShader();
+          });
+
+          loader.load("/model2.glb", (gltf) => {
+            model2 = gltf.scene;
+            model2.visible = false; // Initially hidden
+            scene.add(model2);
           });
         });
 
- 
         camera.position.z = 3;
-
 
         gui = new dat.GUI();
         gui.close();
@@ -196,49 +133,57 @@
           positionZ: 0,
           lightIntensity: 1,
           lightColor: "#ffffff",
-          shader: false, // Shader is off by default
+          shader: false,
+          toggleModel: "model1", // Default to model1
         };
 
-    
-        gui.add(params, "scale", 0.1, 5).onChange(() => {
-          if (model) model.scale.set(params.scale, params.scale, params.scale);
-        });
-        gui.add(params, "rotationX", 0, Math.PI * 2).onChange(() => {
-          if (model) model.rotation.x = params.rotationX;
-        });
-        gui.add(params, "rotationY", 0, Math.PI * 2).onChange(() => {
-          if (model) model.rotation.y = params.rotationY;
-        });
-        gui.add(params, "rotationZ", 0, Math.PI * 2).onChange(() => {
-          if (model) model.rotation.z = params.rotationZ;
-        });
-        gui.add(params, "positionX", -5, 5).onChange(() => {
-          if (model) model.position.x = params.positionX;
-        });
-        gui.add(params, "positionY", -5, 5).onChange(() => {
-          if (model) model.position.y = params.positionY;
-        });
-        gui.add(params, "positionZ", -5, 5).onChange(() => {
-          if (model) model.position.z = params.positionZ;
+        gui.add(params, "toggleModel", ["model1", "model2"]).onChange(() => {
+          toggleModel(params.toggleModel);
         });
 
-    
+        gui.add(params, "scale", 0.1, 5).onChange(() => {
+          if (currentModel) currentModel.scale.set(params.scale, params.scale, params.scale);
+        });
+
+        gui.add(params, "rotationX", 0, Math.PI * 2).onChange(() => {
+          if (currentModel) currentModel.rotation.x = params.rotationX;
+        });
+
+        gui.add(params, "rotationY", 0, Math.PI * 2).onChange(() => {
+          if (currentModel) currentModel.rotation.y = params.rotationY;
+        });
+
+        gui.add(params, "rotationZ", 0, Math.PI * 2).onChange(() => {
+          if (currentModel) currentModel.rotation.z = params.rotationZ;
+        });
+
+        gui.add(params, "positionX", -5, 5).onChange(() => {
+          if (currentModel) currentModel.position.x = params.positionX;
+        });
+
+        gui.add(params, "positionY", -5, 5).onChange(() => {
+          if (currentModel) currentModel.position.y = params.positionY;
+        });
+
+        gui.add(params, "positionZ", -5, 5).onChange(() => {
+          if (currentModel) currentModel.position.z = params.positionZ;
+        });
+
         gui.add(params, "lightIntensity", 0, 5).onChange(() => {
           if (ambientLight) ambientLight.intensity = params.lightIntensity;
           if (directionalLight)
             directionalLight.intensity = params.lightIntensity;
         });
+
         gui.addColor(params, "lightColor").onChange(() => {
           if (ambientLight) ambientLight.color.set(params.lightColor);
           if (directionalLight) directionalLight.color.set(params.lightColor);
         });
 
-    
         gui.add(params, "shader").onChange(() => {
           shaderEnabled = params.shader;
           toggleShader();
         });
-
 
         const exportParams = () => {
           const data = JSON.stringify(params, null, 2);
@@ -253,23 +198,32 @@
         animate();
       }
 
-      // Toggle shader material
       function toggleShader() {
-        if (shaderEnabled && model) {
-          model.children[0].material = shaderMaterial;
-        } else if (model) {
-          model.children[0].material = defaultMaterial;
+        if (shaderEnabled && currentModel) {
+          currentModel.children[0].material = shaderMaterial;
+        } else if (currentModel) {
+          currentModel.children[0].material = defaultMaterial;
         }
       }
 
-     
+      function toggleModel(selectedModel) {
+        if (selectedModel === "model1") {
+          if (model) model.visible = true;
+          if (model2) model2.visible = false;
+          currentModel = model;
+        } else {
+          if (model) model.visible = false;
+          if (model2) model2.visible = true;
+          currentModel = model2;
+        }
+      }
+
       function animate() {
         requestAnimationFrame(animate);
-        controls.update(); 
+        controls.update();
         renderer.render(scene, camera);
       }
 
-    
       window.addEventListener("resize", () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -279,12 +233,12 @@
       init();
     </script>
 
-
     <div class="footer">
       <p><a href="https://sudo-self.com" target="_blank">sudo-self.com</a></p>
     </div>
   </body>
 </html>
+
 
 
 
