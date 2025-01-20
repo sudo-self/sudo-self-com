@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- (Meta Tags and Head Content Remain the Same) -->
-    <!-- Page Title -->
     <title>sudo-self.com</title>
     <style>
       body {
@@ -18,7 +16,7 @@
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
+        background: transparent;
         color: white;
         text-align: center;
         padding: 10px;
@@ -42,47 +40,29 @@
     <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.7/build/dat.gui.min.js"></script>
 
     <script>
-      let scene, camera, renderer, model, model2, currentModel;
-      let controls, ambientLight, directionalLight;
-      let gui, params;
-      let shaderEnabled = false;
-      let defaultMaterial, shaderMaterial;
+      let scene, camera, renderer, controls, gui;
+      let model1, model2, model3;
       let hdrTexture;
-
-      const vertexShader = `
-      varying vec3 vColor;
-      void main() {
-        vColor = position.xyz;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-      const fragmentShader = `
-      uniform vec3 color;
-      varying vec3 vColor;
-      void main() {
-        gl_FragColor = vec4(vColor * color, 1.0);
-      }
-    `;
+      let params = {
+        toggleModel: "Model 1",
+      };
 
       function init() {
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        renderer = new THREE.WebGLRenderer();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.25;
 
-        ambientLight = new THREE.AmbientLight(0x404040, 4);
+        const ambientLight = new THREE.AmbientLight(0x404040, 4);
         scene.add(ambientLight);
-        directionalLight = new THREE.DirectionalLight(0xffffff, 5);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 5);
         directionalLight.position.set(1, 1, 1).normalize();
         scene.add(directionalLight);
 
@@ -92,130 +72,96 @@
           hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
           scene.environment = hdrTexture;
 
-          const loader = new THREE.GLTFLoader();
-          loader.load("/model.glb", (gltf) => {
-            model = gltf.scene;
-            currentModel = model; // Set current model
-            scene.add(model);
-            model.scale.set(1, 1, 1);
-
-            defaultMaterial = model.children[0].material;
-
-            shaderMaterial = new THREE.ShaderMaterial({
-              uniforms: {
-                color: { value: new THREE.Color(0xff0000) },
-              },
-              vertexShader: vertexShader,
-              fragmentShader: fragmentShader,
-            });
-
-            toggleShader();
-          });
-
-          loader.load("/model2.glb", (gltf) => {
-            model2 = gltf.scene;
-            model2.visible = false; // Initially hidden
-            scene.add(model2);
-          });
+          loadModels();
         });
 
-        camera.position.z = 3;
-
         gui = new dat.GUI();
-        gui.close();
-        params = {
-          scale: 1,
-          rotationX: 0,
-          rotationY: 0,
-          rotationZ: 0,
-          positionX: 0,
-          positionY: 0,
-          positionZ: 0,
-          lightIntensity: 1,
-          lightColor: "#ffffff",
-          shader: false,
-          toggleModel: "model1", // Default to model1
-        };
-
-        gui.add(params, "toggleModel", ["model1", "model2"]).onChange(() => {
+        gui.add(params, "toggleModel", ["Model 1", "Model 2", "Model 3", "Show All"]).onChange(() => {
           toggleModel(params.toggleModel);
         });
 
-        gui.add(params, "scale", 0.1, 5).onChange(() => {
-          if (currentModel) currentModel.scale.set(params.scale, params.scale, params.scale);
-        });
-
-        gui.add(params, "rotationX", 0, Math.PI * 2).onChange(() => {
-          if (currentModel) currentModel.rotation.x = params.rotationX;
-        });
-
-        gui.add(params, "rotationY", 0, Math.PI * 2).onChange(() => {
-          if (currentModel) currentModel.rotation.y = params.rotationY;
-        });
-
-        gui.add(params, "rotationZ", 0, Math.PI * 2).onChange(() => {
-          if (currentModel) currentModel.rotation.z = params.rotationZ;
-        });
-
-        gui.add(params, "positionX", -5, 5).onChange(() => {
-          if (currentModel) currentModel.position.x = params.positionX;
-        });
-
-        gui.add(params, "positionY", -5, 5).onChange(() => {
-          if (currentModel) currentModel.position.y = params.positionY;
-        });
-
-        gui.add(params, "positionZ", -5, 5).onChange(() => {
-          if (currentModel) currentModel.position.z = params.positionZ;
-        });
-
-        gui.add(params, "lightIntensity", 0, 5).onChange(() => {
-          if (ambientLight) ambientLight.intensity = params.lightIntensity;
-          if (directionalLight)
-            directionalLight.intensity = params.lightIntensity;
-        });
-
-        gui.addColor(params, "lightColor").onChange(() => {
-          if (ambientLight) ambientLight.color.set(params.lightColor);
-          if (directionalLight) directionalLight.color.set(params.lightColor);
-        });
-
-        gui.add(params, "shader").onChange(() => {
-          shaderEnabled = params.shader;
-          toggleShader();
-        });
-
-        const exportParams = () => {
-          const data = JSON.stringify(params, null, 2);
-          const blob = new Blob([data], { type: "application/json" });
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = "model-params.json";
-          link.click();
-        };
-        gui.add({ export: exportParams }, "export");
+        window.addEventListener("resize", onWindowResize);
 
         animate();
       }
 
-      function toggleShader() {
-        if (shaderEnabled && currentModel) {
-          currentModel.children[0].material = shaderMaterial;
-        } else if (currentModel) {
-          currentModel.children[0].material = defaultMaterial;
-        }
+      function loadModels() {
+        const loader = new THREE.GLTFLoader();
+
+        // Load Elmo
+        loader.load(
+          "/model.glb",
+          (gltf) => {
+            model1 = gltf.scene;
+            model1.name = "Elmo";
+            model1.rotation.y = Math.PI / -2; // Rotate to face front
+            model1.position.set(1, -1, 2);
+            model1.visible = true;
+            scene.add(model1);
+          },
+          undefined,
+          (error) => console.error("Error loading Elmo:", error)
+        );
+
+        // Load Cookie Monster
+        loader.load(
+          "/model2.glb",
+          (gltf) => {
+            model2 = gltf.scene;
+            model2.name = "Cookie Monster";
+            model2.rotation.y = Math.PI / -2; // Rotate to face front
+            model2.position.set(1, 0, 3);
+            model2.visible = false;
+            scene.add(model2);
+          },
+          undefined,
+          (error) => console.error("Error loading Cookie Monster:", error)
+        );
+
+        // Load Big Bird
+        loader.load(
+          "/model3.glb",
+          (gltf) => {
+            model3 = gltf.scene;
+            model3.name = "Big Bird";
+            model3.rotation.y = Math.PI / 2; // Rotate to face front
+            model3.position.set(0.8, 0, 2);
+            model3.visible = false;
+            scene.add(model3);
+          },
+          undefined,
+          (error) => console.error("Error loading Big Bird:", error)
+        );
       }
 
       function toggleModel(selectedModel) {
-        if (selectedModel === "model1") {
-          if (model) model.visible = true;
-          if (model2) model2.visible = false;
-          currentModel = model;
-        } else {
-          if (model) model.visible = false;
-          if (model2) model2.visible = true;
-          currentModel = model2;
+        if (selectedModel === "Model 1") {
+          setModelVisibility(model1, true);
+          setModelVisibility(model2, false);
+          setModelVisibility(model3, false);
+        } else if (selectedModel === "Model 2") {
+          setModelVisibility(model1, false);
+          setModelVisibility(model2, true);
+          setModelVisibility(model3, false);
+        } else if (selectedModel === "Model 3") {
+          setModelVisibility(model1, false);
+          setModelVisibility(model2, false);
+          setModelVisibility(model3, true);
+        } else if (selectedModel === "Show All") {
+          setModelVisibility(model1, true);
+          setModelVisibility(model2, true);
+          setModelVisibility(model3, true);
         }
+      }
+
+      function setModelVisibility(model, isVisible) {
+        if (model) model.visible = isVisible;
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
       function animate() {
@@ -223,12 +169,6 @@
         controls.update();
         renderer.render(scene, camera);
       }
-
-      window.addEventListener("resize", () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-      });
 
       init();
     </script>
@@ -238,6 +178,11 @@
     </div>
   </body>
 </html>
+
+
+
+
+
 
 
 
