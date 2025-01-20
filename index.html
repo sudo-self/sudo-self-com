@@ -43,9 +43,12 @@
       let scene, camera, renderer, controls, gui;
       let model1, model2, model3;
       let hdrTexture;
-      let params = {
+      const params = {
         toggleModel: "Model 1",
-        color: "#ffffff",
+        enableShader: false,
+        model1Color: "#ff0000",
+        model2Color: "#00ff00",
+        model3Color: "#0000ff",
       };
 
       function init() {
@@ -80,9 +83,10 @@
         gui.add(params, "toggleModel", ["Model 1", "Model 2", "Model 3", "Show All"]).onChange(() => {
           toggleModel(params.toggleModel);
         });
-        gui.addColor(params, "color").onChange(() => {
-          updateModelColors();
-        });
+        gui.add(params, "enableShader").name("Enable Shader").onChange(toggleShader);
+        gui.addColor(params, "model1Color").name("Model 1 Color").onChange(() => applyShader());
+        gui.addColor(params, "model2Color").name("Model 2 Color").onChange(() => applyShader());
+        gui.addColor(params, "model3Color").name("Model 3 Color").onChange(() => applyShader());
 
         window.addEventListener("resize", onWindowResize);
 
@@ -97,7 +101,7 @@
           "/model.glb",
           (gltf) => {
             model1 = gltf.scene;
-            applyColorShader(model1);
+            model1.name = "Elmo";
             model1.rotation.y = Math.PI / -2;
             model1.position.set(1, -1, 2);
             model1.visible = true;
@@ -112,7 +116,7 @@
           "/model2.glb",
           (gltf) => {
             model2 = gltf.scene;
-            applyColorShader(model2);
+            model2.name = "Cookie Monster";
             model2.rotation.y = Math.PI / -2;
             model2.position.set(1, 0, 3);
             model2.visible = false;
@@ -127,7 +131,7 @@
           "/model3.glb",
           (gltf) => {
             model3 = gltf.scene;
-            applyColorShader(model3);
+            model3.name = "Big Bird";
             model3.rotation.y = Math.PI / 2;
             model3.position.set(0.8, 0, 2);
             model3.visible = false;
@@ -136,25 +140,6 @@
           undefined,
           (error) => console.error("Error loading Big Bird:", error)
         );
-      }
-
-      function applyColorShader(model) {
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              color: params.color,
-              roughness: 0.5,
-              metalness: 0.7,
-              envMap: hdrTexture,
-            });
-          }
-        });
-      }
-
-      function updateModelColors() {
-        [model1, model2, model3].forEach((model) => {
-          if (model) applyColorShader(model);
-        });
       }
 
       function toggleModel(selectedModel) {
@@ -175,6 +160,41 @@
           setModelVisibility(model2, true);
           setModelVisibility(model3, true);
         }
+      }
+
+      function toggleShader() {
+        if (params.enableShader) {
+          applyShader();
+        } else {
+          resetDefaultMaterials();
+        }
+      }
+
+      function applyShader() {
+        if (params.enableShader) {
+          if (model1) updateModelMaterial(model1, params.model1Color);
+          if (model2) updateModelMaterial(model2, params.model2Color);
+          if (model3) updateModelMaterial(model3, params.model3Color);
+        }
+      }
+
+      function updateModelMaterial(model, color) {
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: new THREE.Color(color),
+              emissive: new THREE.Color(color).multiplyScalar(0.2),
+              metalness: 0.8,
+              roughness: 0.3,
+            });
+          }
+        });
+      }
+
+      function resetDefaultMaterials() {
+        model1?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
+        model2?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
+        model3?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
       }
 
       function setModelVisibility(model, isVisible) {
@@ -201,6 +221,7 @@
     </div>
   </body>
 </html>
+
 
 
 
