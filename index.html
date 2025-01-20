@@ -45,6 +45,7 @@
       let hdrTexture;
       let params = {
         toggleModel: "Model 1",
+        color: "#ffffff",
       };
 
       function init() {
@@ -79,6 +80,9 @@
         gui.add(params, "toggleModel", ["Model 1", "Model 2", "Model 3", "Show All"]).onChange(() => {
           toggleModel(params.toggleModel);
         });
+        gui.addColor(params, "color").onChange(() => {
+          updateModelColors();
+        });
 
         window.addEventListener("resize", onWindowResize);
 
@@ -93,8 +97,8 @@
           "/model.glb",
           (gltf) => {
             model1 = gltf.scene;
-            model1.name = "Elmo";
-            model1.rotation.y = Math.PI / -2; // Rotate to face front
+            applyColorShader(model1);
+            model1.rotation.y = Math.PI / -2;
             model1.position.set(1, -1, 2);
             model1.visible = true;
             scene.add(model1);
@@ -108,8 +112,8 @@
           "/model2.glb",
           (gltf) => {
             model2 = gltf.scene;
-            model2.name = "Cookie Monster";
-            model2.rotation.y = Math.PI / -2; // Rotate to face front
+            applyColorShader(model2);
+            model2.rotation.y = Math.PI / -2;
             model2.position.set(1, 0, 3);
             model2.visible = false;
             scene.add(model2);
@@ -123,8 +127,8 @@
           "/model3.glb",
           (gltf) => {
             model3 = gltf.scene;
-            model3.name = "Big Bird";
-            model3.rotation.y = Math.PI / 2; // Rotate to face front
+            applyColorShader(model3);
+            model3.rotation.y = Math.PI / 2;
             model3.position.set(0.8, 0, 2);
             model3.visible = false;
             scene.add(model3);
@@ -132,6 +136,25 @@
           undefined,
           (error) => console.error("Error loading Big Bird:", error)
         );
+      }
+
+      function applyColorShader(model) {
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+              color: params.color,
+              roughness: 0.5,
+              metalness: 0.7,
+              envMap: hdrTexture,
+            });
+          }
+        });
+      }
+
+      function updateModelColors() {
+        [model1, model2, model3].forEach((model) => {
+          if (model) applyColorShader(model);
+        });
       }
 
       function toggleModel(selectedModel) {
@@ -178,6 +201,7 @@
     </div>
   </body>
 </html>
+
 
 
 
