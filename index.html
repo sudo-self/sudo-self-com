@@ -1,12 +1,15 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>sudo-self.com</title>
     <style>
       body {
         margin: 0;
         background-color: #1a1a1a;
         color: white;
+        overflow: hidden;
       }
       canvas {
         display: block;
@@ -42,10 +45,13 @@
     <script>
       let scene, camera, renderer, controls, gui;
       let model1, model2, model3;
-      let hdrTexture;
       const params = {
         toggleModel: "Model 1",
         enableShader: false,
+        positionX: 0,
+        positionY: 0,
+        positionZ: 0,
+        scale: 1,
         model1Color: "#ff0000",
         model2Color: "#00ff00",
         model3Color: "#0000ff",
@@ -72,9 +78,8 @@
 
         const hdrLoader = new THREE.RGBELoader();
         hdrLoader.load("./elmo.hdr", function (texture) {
-          hdrTexture = texture;
-          hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
-          scene.environment = hdrTexture;
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+          scene.environment = texture;
 
           loadModels();
         });
@@ -84,9 +89,13 @@
           toggleModel(params.toggleModel);
         });
         gui.add(params, "enableShader").name("Enable Shader").onChange(toggleShader);
-        gui.addColor(params, "model1Color").name("Model 1 Color").onChange(() => applyShader());
-        gui.addColor(params, "model2Color").name("Model 2 Color").onChange(() => applyShader());
-        gui.addColor(params, "model3Color").name("Model 3 Color").onChange(() => applyShader());
+        gui.add(params, "positionX", -10, 10, 0.1).name("Position X").onChange(updateModelTransform);
+        gui.add(params, "positionY", -10, 10, 0.1).name("Position Y").onChange(updateModelTransform);
+        gui.add(params, "positionZ", -10, 10, 0.1).name("Position Z").onChange(updateModelTransform);
+        gui.add(params, "scale", 0.1, 5, 0.1).name("Scale").onChange(updateModelTransform);
+        gui.addColor(params, "model1Color").name("Model 1 Color").onChange(applyShader);
+        gui.addColor(params, "model2Color").name("Model 2 Color").onChange(applyShader);
+        gui.addColor(params, "model3Color").name("Model 3 Color").onChange(applyShader);
 
         window.addEventListener("resize", onWindowResize);
 
@@ -96,70 +105,23 @@
       function loadModels() {
         const loader = new THREE.GLTFLoader();
 
-        // Load Elmo
         loader.load(
           "/model.glb",
           (gltf) => {
             model1 = gltf.scene;
-            model1.name = "Elmo";
-            model1.rotation.y = Math.PI / -2;
-            model1.position.set(1, -1, 2);
-            model1.visible = true;
+            model1.position.set(params.positionX, params.positionY, params.positionZ);
+            model1.scale.set(params.scale, params.scale, params.scale);
             scene.add(model1);
           },
           undefined,
-          (error) => console.error("Error loading Elmo:", error)
-        );
-
-        // Load Cookie Monster
-        loader.load(
-          "/model2.glb",
-          (gltf) => {
-            model2 = gltf.scene;
-            model2.name = "Cookie Monster";
-            model2.rotation.y = Math.PI / -2;
-            model2.position.set(1, 0, 3);
-            model2.visible = false;
-            scene.add(model2);
-          },
-          undefined,
-          (error) => console.error("Error loading Cookie Monster:", error)
-        );
-
-        // Load Big Bird
-        loader.load(
-          "/model3.glb",
-          (gltf) => {
-            model3 = gltf.scene;
-            model3.name = "Big Bird";
-            model3.rotation.y = Math.PI / 2;
-            model3.position.set(0.8, 0, 2);
-            model3.visible = false;
-            scene.add(model3);
-          },
-          undefined,
-          (error) => console.error("Error loading Big Bird:", error)
+          (error) => console.error("Error loading model:", error)
         );
       }
 
       function toggleModel(selectedModel) {
-        if (selectedModel === "Model 1") {
-          setModelVisibility(model1, true);
-          setModelVisibility(model2, false);
-          setModelVisibility(model3, false);
-        } else if (selectedModel === "Model 2") {
-          setModelVisibility(model1, false);
-          setModelVisibility(model2, true);
-          setModelVisibility(model3, false);
-        } else if (selectedModel === "Model 3") {
-          setModelVisibility(model1, false);
-          setModelVisibility(model2, false);
-          setModelVisibility(model3, true);
-        } else if (selectedModel === "Show All") {
-          setModelVisibility(model1, true);
-          setModelVisibility(model2, true);
-          setModelVisibility(model3, true);
-        }
+        [model1, model2, model3].forEach((model, index) => {
+          if (model) model.visible = selectedModel === `Model ${index + 1}` || selectedModel === "Show All";
+        });
       }
 
       function toggleShader() {
@@ -171,11 +133,12 @@
       }
 
       function applyShader() {
-        if (params.enableShader) {
-          if (model1) updateModelMaterial(model1, params.model1Color);
-          if (model2) updateModelMaterial(model2, params.model2Color);
-          if (model3) updateModelMaterial(model3, params.model3Color);
-        }
+        [model1, model2, model3].forEach((model, index) => {
+          if (model) {
+            const color = index === 0 ? params.model1Color : index === 1 ? params.model2Color : params.model3Color;
+            updateModelMaterial(model, color);
+          }
+        });
       }
 
       function updateModelMaterial(model, color) {
@@ -192,13 +155,22 @@
       }
 
       function resetDefaultMaterials() {
-        model1?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
-        model2?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
-        model3?.traverse((child) => child.material && (child.material = child.userData.defaultMaterial));
+        [model1, model2, model3].forEach((model) => {
+          model?.traverse((child) => {
+            if (child.isMesh && child.userData.defaultMaterial) {
+              child.material = child.userData.defaultMaterial;
+            }
+          });
+        });
       }
 
-      function setModelVisibility(model, isVisible) {
-        if (model) model.visible = isVisible;
+      function updateModelTransform() {
+        [model1, model2, model3].forEach((model) => {
+          if (model) {
+            model.position.set(params.positionX, params.positionY, params.positionZ);
+            model.scale.set(params.scale, params.scale, params.scale);
+          }
+        });
       }
 
       function onWindowResize() {
@@ -221,6 +193,7 @@
     </div>
   </body>
 </html>
+
 
 
 
