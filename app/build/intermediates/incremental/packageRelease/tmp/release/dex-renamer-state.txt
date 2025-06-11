@@ -1,0 +1,4 @@
+#Wed Jun 11 16:10:52 MDT 2025
+base.0=/Users/jesseroper/Downloads/untitled folder/sudo-self-com/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
