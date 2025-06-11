@@ -1,7 +1,7 @@
 {
   "name": "Sudo Self",
-  "short_name": "SudoSelf",
-  "description": "A web app to manage sudo self tasks.",
+  "short_name": "Sudo-Self",
+  "description": "A web app",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
